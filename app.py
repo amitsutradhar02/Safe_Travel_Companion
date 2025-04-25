@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -16,7 +16,7 @@ load_dotenv()
 
 # Configure app
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///safe_travel.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///safe_travel.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     dark_mode = db.Column(db.Boolean, default=False)
     groups = db.relationship('Group', secondary='user_group', backref='members')
+    routines = db.relationship('Routine', back_populates='user')
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -40,6 +41,17 @@ class Group(db.Model):
     destination = db.Column(db.String(200), nullable=False)
     departure_time = db.Column(db.DateTime, nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+
+class Routine(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    day = db.Column(db.String(20), nullable=False)
+    course_name = db.Column(db.String(100), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    room_no = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', back_populates='routines')
 
 class UserGroup(db.Model):
     __tablename__ = 'user_group'
@@ -66,8 +78,8 @@ def home():
 def register():
     if request.method == 'POST':
         data = request.form
-        if not data['email'].endswith('.edu'):
-            return "Only educational email addresses are allowed", 400
+        if not data['email'].endswith('g.bracu.ac.bd'):
+            return "Only BRACU GSuite email addresses are allowed", 400
             
         if User.query.filter_by(email=data['email']).first():
             return "Email already registered", 400
@@ -104,23 +116,55 @@ def logout():
 @login_required
 def dashboard():
     groups = Group.query.all()
-    return render_template('dashboard.html', groups=groups)
+    routines = current_user.routines  # Access routines from the logged-in user directly
+    return render_template('dashboard.html', groups=groups, routines=routines)
 
 @app.route('/create_group', methods=['GET', 'POST'])
 @login_required
 def create_group():
     if request.method == 'POST':
         data = request.form
+        # Convert the departure_time string to a datetime object
+        departure_time_str = data['departure_time']
+        departure_time = datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M')  # Assuming the format is 'YYYY-MM-DDTHH:MM'
+
         group = Group(
             name=data['name'],
             destination=data['destination'],
-            departure_time=data['departure_time'],
+            departure_time=departure_time,
             created_by=current_user.id
         )
         db.session.add(group)
         db.session.commit()
         return redirect(url_for('dashboard'))
+    
     return render_template('create_group.html')
+
+@app.route('/create-routine', methods=['GET', 'POST'])
+@login_required
+def create_routine():
+    if request.method == 'POST':
+        day = request.form['day']
+        course_name = request.form['course_name']
+        start_time = datetime.strptime(request.form['start_time'], '%H:%M').time()
+        end_time = datetime.strptime(request.form['end_time'], '%H:%M').time()
+        location = request.form['location']
+
+        new_routine = Routine(
+            day=day,
+            course_name=course_name,
+            start_time=start_time,
+            end_time=end_time,
+            location=location,
+            user_id=current_user.id
+        )
+
+        db.session.add(new_routine)
+        db.session.commit()
+        flash('Routine created successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('create_routine.html')
 
 @app.route('/join_group/<int:group_id>')
 @login_required
