@@ -2,20 +2,11 @@
 
 A secure platform for university students to find travel companions within their institution.
 
-## Features (Module 1)
-
-- User Registration and Authentication with G-Suite
-- Student Email Verification
-- Profile Management
-- Dark Mode Support
-- Class Schedule Management
-
 ## Tech Stack
 
 - Backend: Flask (Python)
 - Frontend: HTML, CSS, JavaScript
-- Database: MySQL
-- Authentication: Google OAuth 2.0
+- Database: Sqlite
 
 ## Setup Instructions
 
@@ -33,9 +24,9 @@ cd server
 pip install -r requirements.txt
 ```
 
-3. Set up MySQL:
-- Create a new MySQL database named 'safe_travel_db'
-- Update the DATABASE_URL in `.env` with your MySQL credentials
+3. Set up Sqlite:
+- Create a new MySQL database named 'safe_travel.db'
+- Update the DATABASE_URL in `.env` with your Sqlite credentials
 
 4. Configure environment variables:
 - Update `.env` file with your:
@@ -67,14 +58,12 @@ python -m http.server 3000
 - Backend: http://localhost:5000
 - Frontend: http://localhost:3000
 
-2. Register with your university email (.edu)
+2. Register with your university email (g.bracu.ac.bd)
 3. Verify your email address
 4. Set up your profile and class schedule
 
 ## Security Features
 
-- Email domain restriction (.edu only)
+- Email domain restriction (g.bracu.ac.bd only)
 - Password hashing
-- JWT token authentication
-- CORS protection
 - Input validation
