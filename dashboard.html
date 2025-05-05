@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-bg p-4 rounded">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Welcome, {{ current_user.name }}!</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('create_group') }}" class="btn btn-primary me-2">Create New Group</a>
+            <a href="{{ url_for('create_routine') }}" class="btn btn-secondary">Add Routine</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Available Travel Groups</h3>
+                </div>
+                <div class="card-body">
+                    {% if groups %}
+                        <div class="list-group">
+                            {% for group in groups %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-1">{{ group.name }}</h5>
+                                            <p class="mb-1">Destination: {{ group.destination }}</p>
+                                            <small>Departure: {{ group.departure_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div>
+                                            {% if current_user not in group.members %}
+                                                <a href="{{ url_for('join_group', group_id=group.id) }}" 
+                                                   class="btn btn-success btn-sm">Join Group</a>
+                                            {% else %}
+                                                <a href="{{ url_for('group_detail', group_id=group.id) }}" 
+                                                   class="btn btn-primary btn-sm">View Details</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center">No travel groups available at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Groups</h3>
+                </div>
+                <div class="card-body">
+                    {% if current_user.groups %}
+                        <div class="list-group">
+                            {% for group in current_user.groups %}
+                                <a href="{{ url_for('group_detail', group_id=group.id) }}" 
+                                   class="list-group-item list-group-item-action">
+                                    <h5 class="mb-1">{{ group.name }}</h5>
+                                    <small>{{ group.departure_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center">You haven't joined any groups yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Routine</h3>
+                </div>
+                <div class="card-body">
+                    {% if current_user.routine %}
+                        <ul class="list-group">
+                            {% for item in current_user.routine %}
+                                <li class="list-group-item">
+                                    <h5 class="mb-1">{{ item.title }}</h5>
+                                    <p class="mb-1">Time: {{ item.time }}</p>
+                                    <p>{{ item.details }}</p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center">You haven't added any routine yet. <a href="{{ url_for('create_routine') }}">Add your routine now!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
