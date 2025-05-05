@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h2>Route for {{ group.name }}</h2>
+                <p>
+                    {% if group.is_to_university %}
+                        <strong>Going to University</strong><br>
+                        From: {{ start_location }} → To: {{ end_location }}
+                    {% else %}
+                        <strong>Coming from University</strong><br>
+                        From: {{ start_location }} → To: {{ end_location }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="card-body">
+                <div id="map" style="height: 500px;"></div>
+                <div id="directions-panel" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map;
+let directionsService;
+let directionsRenderer;
+
+function initMap() {
+    // Initialize the directions service and renderer
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    
+    // Create the map centered on BRAC University
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 13,
+        center: { lat: 23.7808, lng: 90.4137 }, // BRAC University area
+    });
+    
+    // Connect the directions renderer to the map
+    directionsRenderer.setMap(map);
+    
+    // Connect the directions panel for text directions
+    directionsRenderer.setPanel(document.getElementById("directions-panel"));
+    
+    // Calculate and display the route
+    calculateAndDisplayRoute();
+}
+
+function calculateAndDisplayRoute() {
+    directionsService.route(
+        {
+            origin: "{{ start_location }}",
+            destination: "{{ end_location }}",
+            travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (response, status) => {
+            if (status === "OK") {
+                directionsRenderer.setDirections(response);
+            } else {
+                window.alert("Directions request failed due to " + status);
+            }
+        }
+    );
+}
+
+// Initialize the map when the page loads
+window.onload = initMap;
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCe89AwJIb3m3Ux5YB5fJZttiPSp6_geYs&libraries=places&callback=initMap" async defer></script>
+{% endblock %}
