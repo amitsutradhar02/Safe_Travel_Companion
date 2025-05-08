@@ -32,8 +32,15 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(200), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     dark_mode = db.Column(db.Boolean, default=False)
+    address = db.Column(db.String(100))
+    emergency_contact = db.Column(db.String(20))
     groups = db.relationship('Group', secondary='user_group', backref='members')
     routines = db.relationship('Routine', back_populates='user')
+    is_admin = db.Column(db.Boolean, default=False)
+    # In User model
+    #given_reviews = db.relationship('Review', foreign_keys='Review.reviewer_id', backref='reviewer', lazy='dynamic')
+    #received_reviews = db.relationship('Review', foreign_keys='Review.reviewed_id', backref='reviewed', lazy='dynamic')
+# In User model
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,6 +71,16 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
+
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reviewed_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -118,6 +135,25 @@ def dashboard():
     groups = Group.query.all()
     routines = current_user.routines  # Access routines from the logged-in user directly
     return render_template('dashboard.html', groups=groups, routines=routines)
+
+
+@app.route('/update_profile', methods=['GET', 'POST'])
+@login_required
+def update_profile():
+    user = current_user  # Get the current logged-in user
+    if request.method == 'POST':
+        user.name = request.form['name']
+        user.email = request.form['email']
+        user.address = request.form['address']
+        user.emergency_contact = request.form['emergency_contact']
+        db.session.commit()  # Save the changes to the database
+
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('dashboard'))  # Redirect to the dashboard or another page
+
+    # For GET request, show the profile form with existing data
+    return render_template('update_profile.html', user=user)
+
 
 @app.route('/create_group', methods=['GET', 'POST'])
 @login_required
@@ -196,6 +232,35 @@ def send_message(group_id):
     db.session.add(message)
     db.session.commit()
     return redirect(url_for('group_detail', group_id=group_id))
+
+@app.route('/submit_review', methods=['POST'])
+@login_required
+def submit_review():
+    review = Review(
+        reviewer_id=current_user.id,
+        reviewed_id=request.form['reviewed_id'],
+        group_id=request.form['group_id'],
+        rating=int(request.form['rating']),
+        comment=request.form['comment']
+    )
+    db.session.add(review)
+    db.session.commit()
+    flash("Review submitted successfully!", "success")
+    return redirect(url_for('group_detail', group_id=request.form['group_id']))
+
+@app.route('/my_reviews')
+@login_required
+def my_reviews():
+    reviews = Review.query.filter_by(reviewed_id=current_user.id).order_by(Review.timestamp.desc()).all()
+
+    local_tz = timezone('Asia/Dhaka')  # Use your local timezone
+
+#Convert UTC timestamp to local time for display
+    for review in reviews:
+        if review.timestamp:
+            review.local_time = review.timestamp.replace(tzinfo=timezone('UTC')).astimezone(local_tz)
+
+    return render_template('my_reviews.html', reviews=reviews)
 
 if __name__ == '__main__':
     with app.app_context():
