@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```
 
 3. Set up Sqlite:
-- Create a new MySQL database named 'safe_travel.db'
+- Create a new Sqlite database named 'safe_travel.db'
 - Update the DATABASE_URL in `.env` with your Sqlite credentials
 
 4. Configure environment variables:
